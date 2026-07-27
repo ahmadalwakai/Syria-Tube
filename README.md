@@ -105,8 +105,9 @@ Current App Store Connect status:
 - `eas.json` includes `submit.production.ios.ascAppId` for non-interactive submission.
 - Production iOS signing credentials are configured on EAS with an active provisioning profile for `app.syriatube.ios`.
 - App Store Connect API key `262G7276R6` is configured on EAS for submission.
-- EAS iOS production build `a3d1bfd5-e5ff-4d94-97c9-030ecc736860` finished successfully for app version `1.0.0`, build number `4`.
-- EAS iOS submission `27666d1a-2b37-453a-91d3-c0faddc6a939` finished successfully and uploaded the build to App Store Connect/TestFlight processing.
+- EAS iOS production build `2e87e35b-5c12-4cff-8489-bae5711632a5` finished successfully for app version `1.0.0`, build number `5`.
+- EAS iOS submission `ce8f53a4-354d-4ce3-ae1d-19017ef7be5f` finished successfully and uploaded the build to App Store Connect/TestFlight.
+- App Store Connect shows build `1.0.0 (5)` as validated, with the new Syria Tube icon embedded from the uploaded build, and assigned to the `Internal Testers` group.
 
 Credential setup command:
 
