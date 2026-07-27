@@ -2,7 +2,7 @@
   "expo": {
     "name": "Syria Tube",
     "slug": "syria-tube",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "syriatube",

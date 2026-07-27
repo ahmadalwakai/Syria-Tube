@@ -12,6 +12,7 @@ Syria Tube is now an Expo React Native TypeScript app prepared for iOS TestFligh
 - React Native package checked from npm on 2026-07-27: `0.86.0`
 - EAS CLI package checked from npm on 2026-07-27: `21.3.0`
 - iOS bundle identifier: `app.syriatube.ios`
+- App Store Connect app ID: `6794990700`
 - iOS build target: EAS cloud build for iOS store/TestFlight distribution
 - Secrets: none committed
 - YouTube playback: official embedded IFrame player only, inside `react-native-webview`
@@ -81,6 +82,25 @@ eas build --platform ios --profile production --auto-submit
 The submitted build appears in TestFlight after App Store Connect processing.
 
 On this Windows machine, `C:\Users\Administrator\AppData\Local\pnpm\eas.ps1` shadows the newer npm EAS install. Use `C:\nvm4w\nodejs\eas.cmd` directly if `eas --version` is not `21.3.0`.
+
+Current App Store Connect status:
+
+- App ID `app.syriatube.ios` is registered in Certificates, Identifiers & Profiles.
+- App Store Connect app record `Syria Tube` exists with app ID `6794990700`.
+- `eas.json` includes `submit.production.ios.ascAppId` for non-interactive submission.
+- The latest non-interactive build attempt reached remote iOS credentials but did not start because the Apple Distribution Certificate has not been validated for non-interactive EAS builds.
+
+Credential setup command:
+
+```bash
+C:\nvm4w\nodejs\eas.cmd credentials:configure-build --platform ios --profile production
+```
+
+Build and submit command after credentials are validated:
+
+```bash
+C:\nvm4w\nodejs\eas.cmd build --platform ios --profile production --auto-submit --non-interactive --no-wait
+```
 
 ## App Review Note Draft
 
