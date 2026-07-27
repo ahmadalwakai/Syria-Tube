@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Syria Tube",
+    "slug": "syria-tube",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "syriatube",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "assets/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "app.syriatube.ios",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "app.syriatube.android",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F7F2",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "youtubePlayback": "iframe-only",
+      "eas": {
+        "projectId": "4582d049-a59e-4185-ba25-1ec1dcdc06a1"
+      }
+    },
+    "owner": "ahmadawadalwakai"
+  }
+}
