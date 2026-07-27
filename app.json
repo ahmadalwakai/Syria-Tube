@@ -12,6 +12,7 @@
     ],
     "ios": {
       "bundleIdentifier": "app.syriatube.ios",
+      "icon": "./assets/icon.png",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

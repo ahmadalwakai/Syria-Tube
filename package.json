@@ -5,6 +5,8 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "api": "node server/youtube-proxy.mjs",
+    "icons": "powershell -ExecutionPolicy Bypass -File scripts/generate-icons.ps1",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

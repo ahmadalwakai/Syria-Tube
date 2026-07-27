@@ -21,7 +21,7 @@ Syria Tube is now an Expo React Native TypeScript app prepared for iOS TestFligh
 
 The app keeps YouTube playback inside the official embedded player and does not include raw stream URLs, media extraction, download logic, MP3 conversion, proxying, offline playback, ad removal, hidden background playback, PiP, AirPlay, Chromecast, or manual quality controls.
 
-Search currently uses local sample metadata. For production YouTube search, add a backend that holds the YouTube Data API key server-side and returns validated typed responses to the app. Do not place a YouTube API key in Expo public config or the mobile bundle.
+Search uses local sample metadata unless `EXPO_PUBLIC_SYRIA_TUBE_API_BASE_URL` points to a backend. A local backend proxy is available at `server/youtube-proxy.mjs`; it reads `YOUTUBE_DATA_API_KEY` from `.env.local` or the process environment and keeps the key server-side. Do not place a YouTube API key in Expo public config or the mobile bundle.
 
 Official references used:
 
@@ -46,6 +46,21 @@ Run the app:
 ```bash
 npm start
 ```
+
+Run the local YouTube search proxy:
+
+```bash
+npm run api
+```
+
+Use the proxy from Expo during development:
+
+```bash
+set EXPO_PUBLIC_SYRIA_TUBE_API_BASE_URL=http://localhost:8787
+npm start
+```
+
+For TestFlight, deploy this proxy behind a public HTTPS URL and build with `EXPO_PUBLIC_SYRIA_TUBE_API_BASE_URL` set to that URL.
 
 Run checks:
 

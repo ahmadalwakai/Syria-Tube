@@ -42,6 +42,7 @@ import {
   upsertProgress
 } from './src/core';
 import { YouTubePlayer } from './src/YouTubePlayer';
+import { searchRemoteVideos } from './src/searchApi';
 
 type TabKey = 'home' | 'search' | 'watch' | 'library' | 'settings';
 
@@ -276,6 +277,7 @@ function SearchScreen({
   const [sort, setSort] = useState<SearchSort>('relevance');
   const [duration, setDuration] = useState<SearchDuration>('any');
   const [loading, setLoading] = useState(false);
+  const [remoteResults, setRemoteResults] = useState<VideoSummary[] | null>(null);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -291,14 +293,33 @@ function SearchScreen({
   useEffect(() => {
     if (!debouncedQuery) {
       setLoading(false);
+      setRemoteResults(null);
       return;
     }
     setLoading(true);
-    const timeout = setTimeout(() => setLoading(false), 250);
-    return () => clearTimeout(timeout);
+    let cancelled = false;
+    searchRemoteVideos({ query: debouncedQuery, type, sort, duration })
+      .then((page) => {
+        if (!cancelled) {
+          setRemoteResults(page?.videos ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRemoteResults(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [debouncedQuery, type, sort, duration]);
 
-  const results = useMemo(() => {
+  const sampleResults = useMemo(() => {
     if (!debouncedQuery || debouncedQuery.length > 100) {
       return [];
     }
@@ -310,6 +331,7 @@ function SearchScreen({
       })
     );
   }, [debouncedQuery]);
+  const results = remoteResults ?? sampleResults;
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
