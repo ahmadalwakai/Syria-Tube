@@ -66,18 +66,21 @@ This Windows machine can prepare and trigger EAS cloud builds, but actual TestFl
 Commands after credentials are ready:
 
 ```bash
-npx eas-cli login
-npx eas-cli build --platform ios --profile production
-npx eas-cli submit --platform ios --profile production
+eas login
+eas credentials --platform ios
+eas build --platform ios --profile production
+eas submit --platform ios --profile production
 ```
 
 You can also use one step after the project is connected to EAS:
 
 ```bash
-npx eas-cli build --platform ios --profile production --auto-submit
+eas build --platform ios --profile production --auto-submit
 ```
 
 The submitted build appears in TestFlight after App Store Connect processing.
+
+On this Windows machine, `C:\Users\Administrator\AppData\Local\pnpm\eas.ps1` shadows the newer npm EAS install. Use `C:\nvm4w\nodejs\eas.cmd` directly if `eas --version` is not `21.3.0`.
 
 ## App Review Note Draft
 

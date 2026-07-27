@@ -12,7 +12,6 @@
     ],
     "ios": {
       "bundleIdentifier": "app.syriatube.ios",
-      "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
