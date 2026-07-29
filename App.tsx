@@ -147,6 +147,7 @@ const playbackKeepAwakeTag = 'SyriaTubePlayback';
 const appVersion = '1.0.0';
 
 const homeSectionLabels: Record<HomeSectionKey, string> = {
+  nativeDirect: 'Lock Screen Ready',
   continueWatching: 'Continue Watching',
   trending: 'Trending',
   music: 'Music',

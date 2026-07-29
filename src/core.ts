@@ -109,6 +109,7 @@ export type YouTubeSearchPage = {
 };
 
 export type HomeSectionKey =
+  | 'nativeDirect'
   | 'continueWatching'
   | 'trending'
   | 'music'
@@ -123,6 +124,7 @@ export type HomeSectionKey =
   | 'favourites';
 
 export const homeSectionKeys: HomeSectionKey[] = [
+  'nativeDirect',
   'continueWatching',
   'trending',
   'music',

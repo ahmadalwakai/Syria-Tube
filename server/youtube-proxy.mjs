@@ -166,6 +166,7 @@ async function handleHome(requestUrl, response) {
   const sections = [];
   const errors = [];
   const tasks = [
+    { key: 'nativeDirect', title: 'Lock Screen Ready', run: () => (directPlaybackSources.size ? fetchVideosByIds(directPlaybackVideoIds()) : Promise.resolve([])) },
     { key: 'continueWatching', title: 'Continue Watching', run: () => (historyIds.length ? fetchVideosByIds(historyIds) : Promise.resolve([])) },
     { key: 'trending', title: 'Trending in Great Britain', run: () => fetchPopularVideos() },
     ...categorySections.map((section) => ({ key: section.key, title: section.title, run: () => fetchPopularVideos(section.videoCategoryId) })),
@@ -539,6 +540,10 @@ function normalizeDirectPlaybackSource(value) {
 function directPlaybackForVideo(videoId) {
   const source = directPlaybackSources.get(videoId);
   return source ? { playbackUrl: source.playbackUrl, playbackContentType: source.playbackContentType } : {};
+}
+
+function directPlaybackVideoIds() {
+  return [...directPlaybackSources.keys()].slice(0, 12);
 }
 
 function inferPlaybackContentType(value) {
