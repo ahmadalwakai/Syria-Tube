@@ -17,6 +17,14 @@ const allowedPlaybackContentTypes = new Set(['auto', 'progressive', 'hls', 'dash
 const directPlaybackSources = loadDirectPlaybackSources();
 const freeDirectCatalogCache = new Map();
 const freeDirectCatalogCacheMs = 10 * 60_000;
+const freeDirectHomeSources = [
+  { identifier: 'ElephantsDream', title: 'Elephants Dream', playbackFile: 'ed_1024.mp4' },
+  { identifier: 'Sintel', title: 'Sintel', playbackFile: 'sintel-2048-stereo.mp4' },
+  { identifier: 'Popeye_forPresident', title: 'Popeye for President', playbackFile: 'Popeye_forPresident_512kb.mp4' },
+  { identifier: 'popeye_private_eye_popeye', title: 'Private Eye Popeye', playbackFile: 'popeye_private_eye_popeye_512kb.mp4' },
+  { identifier: 'popeye_shuteye_popeye', title: 'Shuteye Popeye', playbackFile: 'popeye_shuteye_popeye_512kb.mp4' },
+  { identifier: 'Popeye_Nearlyweds', title: 'Popeye the Sailor: Nearlyweds', playbackFile: 'Popeye_Nearlyweds_512kb.mp4' }
+];
 const categorySections = [
   { key: 'music', title: 'Music', videoCategoryId: '10' },
   { key: 'news', title: 'News', videoCategoryId: '25' },
@@ -200,8 +208,8 @@ async function handleHome(requestUrl, response) {
 
 async function fetchNativeDirectVideos() {
   const configuredPromise = directPlaybackSources.size ? fetchVideosByIds(directPlaybackVideoIds()) : Promise.resolve([]);
-  const freeDirectPromise = fetchFreeDirectVideos('free animation', 6, { archiveQuery: 'collection:animationandcartoons', sortByDownloads: true });
-  const [configured, freeDirect] = await Promise.all([settleOrEmpty(configuredPromise), settleOrEmpty(freeDirectPromise)]);
+  const configured = await settleOrEmpty(configuredPromise);
+  const freeDirect = freeDirectHomeVideos();
   return uniqueById([...configured, ...freeDirect]).slice(0, 12);
 }
 
@@ -317,6 +325,28 @@ async function fetchFreeDirectVideos(query, maxResults = 12, options = {}) {
   const videos = uniqueById(candidates).slice(0, maxResults);
   freeDirectCatalogCache.set(cacheKey, { createdAt: Date.now(), videos });
   return videos;
+}
+
+function freeDirectHomeVideos() {
+  return freeDirectHomeSources.map((source) => ({
+    kind: 'video',
+    id: syntheticVideoId('ia', source.identifier),
+    title: source.title,
+    channelId: 'internet-archive',
+    channelName: 'Internet Archive',
+    thumbnailUrl: `https://archive.org/services/img/${encodeURIComponent(source.identifier)}`,
+    durationSeconds: 0,
+    viewCount: null,
+    publishedAt: '',
+    description: 'Free direct-video source from Internet Archive.',
+    canonicalUrl: `https://archive.org/details/${encodeURIComponent(source.identifier)}`,
+    categoryId: 'freeDirect',
+    liveStatus: 'none',
+    embeddable: false,
+    availability: 'public',
+    playbackUrl: archiveFileUrl(source.identifier, source.playbackFile),
+    playbackContentType: 'progressive'
+  }));
 }
 
 async function mapInternetArchiveVideo(doc) {
