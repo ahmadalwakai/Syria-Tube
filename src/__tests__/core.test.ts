@@ -745,7 +745,7 @@ test('native direct-source playback is configured for background playback and Pi
   assert.ok(nativePlayerSource.includes('player.showNowPlayingNotification = true;'));
   assert.ok(nativePlayerSource.includes("player.audioMixingMode = 'doNotMix';"));
   assert.ok(nativePlayerSource.includes('player.allowsExternalPlayback = true;'));
-  assert.ok(nativePlayerSource.includes('startsPictureInPictureAutomatically={false}'));
+  assert.ok(nativePlayerSource.includes('startsPictureInPictureAutomatically'));
   assert.equal(appSource.includes('allows automatic PiP'), false);
   assert.ok(serverSource.includes('SYRIA_TUBE_DIRECT_SOURCES_JSON'));
   assert.ok(serverSource.includes('directPlaybackForVideo(item.id)'));
@@ -1093,8 +1093,11 @@ test('native player reinforces playback when a playing session enters lock scree
   assert.ok(nativePlayerSource.includes("AppState.addEventListener('change'"));
   assert.ok(nativePlayerSource.includes("wasActive && nextState !== 'active' && shouldAutoPlay"));
   assert.ok(nativePlayerSource.includes('keepPlayingAfterScreenLock(player, onStateChange)'));
-  assert.ok(nativePlayerSource.includes('const lockScreenRetry'));
-  assert.ok(nativePlayerSource.includes('lockScreenRetry.current = setTimeout'));
+  assert.ok(nativePlayerSource.includes('const lockScreenRetries'));
+  assert.ok(nativePlayerSource.includes('reinforceBackgroundPlayback(player, onStateChange, lockScreenRetries.current)'));
+  assert.ok(nativePlayerSource.includes("appState.current !== 'active' && shouldAutoPlay"));
+  assert.ok(nativePlayerSource.includes('for (const delay of [250, 650, 1200, 2200])'));
+  assert.ok(nativePlayerSource.includes('startsPictureInPictureAutomatically'));
   assert.ok(nativePlayerSource.includes('configureBackgroundPlayback(player);'));
   assert.ok(nativePlayerSource.includes("player.audioMixingMode = 'doNotMix';"));
   assert.ok(nativePlayerSource.includes('player.staysActiveInBackground = true;'));

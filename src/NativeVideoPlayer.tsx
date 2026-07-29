@@ -29,7 +29,7 @@ export function NativeVideoPlayer({
   onError: (message: string) => void;
 }) {
   const appState = useRef<AppStateStatus>(AppState.currentState);
-  const lockScreenRetry = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lockScreenRetries = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const player = useVideoPlayer(
     source,
     (instance) => {
@@ -54,26 +54,24 @@ export function NativeVideoPlayer({
   }, [player]);
 
   useEffect(() => {
+    if (shouldAutoPlay) {
+      keepPlayingAfterScreenLock(player, onStateChange);
+    } else {
+      clearLockScreenRetries(lockScreenRetries.current);
+    }
+  }, [onStateChange, player, shouldAutoPlay]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
       const wasActive = appState.current === 'active';
       appState.current = nextState;
-      if (lockScreenRetry.current) {
-        clearTimeout(lockScreenRetry.current);
-        lockScreenRetry.current = null;
-      }
+      clearLockScreenRetries(lockScreenRetries.current);
       if (wasActive && nextState !== 'active' && shouldAutoPlay) {
-        keepPlayingAfterScreenLock(player, onStateChange);
-        lockScreenRetry.current = setTimeout(() => {
-          keepPlayingAfterScreenLock(player, onStateChange);
-          lockScreenRetry.current = null;
-        }, 650);
+        reinforceBackgroundPlayback(player, onStateChange, lockScreenRetries.current);
       }
     });
     return () => {
-      if (lockScreenRetry.current) {
-        clearTimeout(lockScreenRetry.current);
-        lockScreenRetry.current = null;
-      }
+      clearLockScreenRetries(lockScreenRetries.current);
       subscription.remove();
     };
   }, [onStateChange, player, shouldAutoPlay]);
@@ -107,6 +105,9 @@ export function NativeVideoPlayer({
     if (status === 'error') {
       onError(error?.message ?? 'The native player could not play this video.');
     }
+    if (appState.current !== 'active' && shouldAutoPlay && status !== 'error' && !player.playing) {
+      reinforceBackgroundPlayback(player, onStateChange, lockScreenRetries.current);
+    }
     onStateChange(mapStatus(status, player.playing), position, duration);
   });
 
@@ -116,6 +117,9 @@ export function NativeVideoPlayer({
   });
 
   useEventListener(player, 'playingChange', ({ isPlaying }) => {
+    if (!isPlaying && appState.current !== 'active' && shouldAutoPlay) {
+      reinforceBackgroundPlayback(player, onStateChange, lockScreenRetries.current);
+    }
     onStateChange(isPlaying ? 'playing' : mapStatus(player.status, false), safeTime(player.currentTime), safeDuration(player.duration));
   });
 
@@ -143,7 +147,7 @@ export function NativeVideoPlayer({
       nativeControls={false}
       contentFit="contain"
       allowsPictureInPicture
-      startsPictureInPictureAutomatically={false}
+      startsPictureInPictureAutomatically
       allowsVideoFrameAnalysis={false}
       fullscreenOptions={{ enable: true, keepFullscreenOnPiPStop: 'autoEnter' }}
       onPictureInPictureStart={() => onStateChange(player.playing ? 'playing' : mapStatus(player.status, false), safeTime(player.currentTime), safeDuration(player.duration))}
@@ -171,6 +175,34 @@ function keepPlayingAfterScreenLock(
   }
   player.play();
   emitCurrentState(player, onStateChange);
+}
+
+function reinforceBackgroundPlayback(
+  player: ReturnType<typeof useVideoPlayer>,
+  onStateChange: (state: PlayerState, position: number, duration: number) => void,
+  retryHandles: Array<ReturnType<typeof setTimeout>>
+) {
+  clearLockScreenRetries(retryHandles);
+  keepPlayingAfterScreenLock(player, onStateChange);
+  for (const delay of [250, 650, 1200, 2200]) {
+    const handle = setTimeout(() => {
+      keepPlayingAfterScreenLock(player, onStateChange);
+      const index = retryHandles.findIndex((retryHandle) => retryHandle === handle);
+      if (index >= 0) {
+        retryHandles.splice(index, 1);
+      }
+    }, delay);
+    retryHandles.push(handle);
+  }
+}
+
+function clearLockScreenRetries(retryHandles: Array<ReturnType<typeof setTimeout>>) {
+  while (retryHandles.length) {
+    const handle = retryHandles.pop();
+    if (handle) {
+      clearTimeout(handle);
+    }
+  }
 }
 
 function runCommand(player: ReturnType<typeof useVideoPlayer>, command: PlayerCommand) {

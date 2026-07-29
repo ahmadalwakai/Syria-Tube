@@ -2930,7 +2930,7 @@ function PersistentPlayer({
               source={descriptor.source}
               command={command}
               repeatOne={repeatOne}
-              shouldAutoPlay={session.playbackIntent === 'play'}
+              shouldAutoPlay={session.playbackIntent === 'play' && session.state !== 'ended'}
               onCommandHandled={onCommandHandled}
               onReady={() => onReady(session.videoId)}
               onProgress={(position, duration) => onProgress(session.videoId, session.video, position, duration)}
