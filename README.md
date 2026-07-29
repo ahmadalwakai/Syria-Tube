@@ -36,12 +36,16 @@ Native background playback requires the backend to attach a direct playable medi
 
 When no direct source is configured for a YouTube video ID, the app uses the YouTube embed fallback and screen-lock playback is unavailable for that video.
 
+The production backend also adds a free native-direct catalog from Internet Archive. These videos are returned with HTTPS MP4 playback URLs, so they can use the native player and continue through iPhone screen lock without a paid video CDN. This does not make arbitrary YouTube videos background-playable; it adds a separate free direct-video source.
+
 Official references used:
 
 - YouTube IFrame Player API: https://developers.google.com/youtube/iframe_api_reference
 - YouTube player parameters: https://developers.google.com/youtube/player_parameters
 - YouTube API Services Terms: https://developers.google.com/youtube/terms/api-services-terms-of-service
 - YouTube Developer Policies: https://developers.google.com/youtube/terms/developer-policies
+- Internet Archive APIs: https://archive.org/developers/index-apis.html
+- Internet Archive Advanced Search: https://archive.org/help/aboutsearch.htm
 - Expo iOS submit docs: https://docs.expo.dev/submit/ios/
 - Expo app config docs: https://docs.expo.dev/versions/latest/config/app/
 - Expo video docs: https://docs.expo.dev/versions/latest/sdk/video/

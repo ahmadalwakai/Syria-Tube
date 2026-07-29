@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const port = Number.parseInt(process.env.PORT ?? '8787', 10);
 const key = loadEnvValue('YOUTUBE_DATA_API_KEY');
@@ -14,6 +15,8 @@ const allowedOrders = new Set(['relevance', 'date', 'viewCount']);
 const allowedDurations = new Set(['any', 'short', 'medium', 'long']);
 const allowedPlaybackContentTypes = new Set(['auto', 'progressive', 'hls', 'dash', 'smoothStreaming']);
 const directPlaybackSources = loadDirectPlaybackSources();
+const freeDirectCatalogCache = new Map();
+const freeDirectCatalogCacheMs = 10 * 60_000;
 const categorySections = [
   { key: 'music', title: 'Music', videoCategoryId: '10' },
   { key: 'news', title: 'News', videoCategoryId: '25' },
@@ -141,6 +144,7 @@ async function handleSearch(requestUrl, response) {
     searchParams.set('eventType', 'live');
   }
 
+  const freeDirectPromise = searchType === 'video' && !pageToken ? fetchFreeDirectVideos(query, 8) : Promise.resolve([]);
   const search = await fetchYouTube(`https://www.googleapis.com/youtube/v3/search?${searchParams}`);
   if (searchType !== 'video') {
     sendJson(response, 200, {
@@ -152,9 +156,10 @@ async function handleSearch(requestUrl, response) {
 
   const ids = uniqueIds((search.items ?? []).map((item) => item.id?.videoId).filter(isValidVideoId));
   const videos = ids.length ? orderVideosByIds(await fetchVideosByIds(ids), ids) : [];
+  const freeDirectVideos = await settleOrEmpty(freeDirectPromise);
   sendJson(response, 200, {
     pageInfo: pageInfo(search),
-    results: videos
+    results: uniqueById([...freeDirectVideos, ...videos])
   });
 }
 
@@ -166,7 +171,7 @@ async function handleHome(requestUrl, response) {
   const sections = [];
   const errors = [];
   const tasks = [
-    { key: 'nativeDirect', title: 'Lock Screen Ready', run: () => (directPlaybackSources.size ? fetchVideosByIds(directPlaybackVideoIds()) : Promise.resolve([])) },
+    { key: 'nativeDirect', title: 'Lock Screen Ready', run: fetchNativeDirectVideos },
     { key: 'continueWatching', title: 'Continue Watching', run: () => (historyIds.length ? fetchVideosByIds(historyIds) : Promise.resolve([])) },
     { key: 'trending', title: 'Trending in Great Britain', run: () => fetchPopularVideos() },
     ...categorySections.map((section) => ({ key: section.key, title: section.title, run: () => fetchPopularVideos(section.videoCategoryId) })),
@@ -191,6 +196,13 @@ async function handleHome(requestUrl, response) {
     sections,
     errors
   });
+}
+
+async function fetchNativeDirectVideos() {
+  const configuredPromise = directPlaybackSources.size ? fetchVideosByIds(directPlaybackVideoIds()) : Promise.resolve([]);
+  const freeDirectPromise = fetchFreeDirectVideos('free animation', 12, { archiveQuery: 'collection:animationandcartoons', sortByDownloads: true });
+  const [configured, freeDirect] = await Promise.all([settleOrEmpty(configuredPromise), settleOrEmpty(freeDirectPromise)]);
+  return uniqueById([...configured, ...freeDirect]).slice(0, 12);
 }
 
 async function handleVideos(requestUrl, response) {
@@ -274,6 +286,78 @@ async function fetchSearchVideos(query, maxResults = 20) {
   return ids.length ? orderVideosByIds(await fetchVideosByIds(ids), ids) : [];
 }
 
+async function fetchFreeDirectVideos(query, maxResults = 12, options = {}) {
+  const normalizedQuery = options.archiveQuery ?? normalizeArchiveSearchQuery(query);
+  const cacheKey = `${normalizedQuery}:${maxResults}:${options.sortByDownloads ? 'popular' : 'relevant'}`;
+  const cached = freeDirectCatalogCache.get(cacheKey);
+  if (cached && Date.now() - cached.createdAt < freeDirectCatalogCacheMs) {
+    return cached.videos;
+  }
+
+  const params = new URLSearchParams({
+    q: `${normalizedQuery} AND mediatype:movies AND (format:"h.264 IA" OR format:"MPEG4")`,
+    rows: String(Math.min(Math.max(maxResults * 4, 12), 40)),
+    page: '1',
+    output: 'json'
+  });
+  for (const field of ['identifier', 'title', 'creator', 'date', 'description', 'downloads']) {
+    params.append('fl[]', field);
+  }
+  if (options.sortByDownloads) {
+    params.append('sort[]', 'downloads desc');
+  }
+
+  const search = await fetchInternetArchiveJson(`https://archive.org/advancedsearch.php?${params}`);
+  const docs = Array.isArray(search?.response?.docs) ? search.response.docs.slice(0, Math.min(maxResults * 3, 24)) : [];
+  const mapped = await Promise.allSettled(docs.map((doc) => mapInternetArchiveVideo(doc)));
+  const candidates = mapped
+    .filter((result) => result.status === 'fulfilled')
+    .map((result) => result.value)
+    .filter(Boolean);
+  const videos = uniqueById(candidates).slice(0, maxResults);
+  freeDirectCatalogCache.set(cacheKey, { createdAt: Date.now(), videos });
+  return videos;
+}
+
+async function mapInternetArchiveVideo(doc) {
+  const identifier = typeof doc?.identifier === 'string' ? doc.identifier : '';
+  if (!isValidArchiveIdentifier(identifier)) {
+    return null;
+  }
+  const metadata = await fetchInternetArchiveJson(`https://archive.org/metadata/${encodeURIComponent(identifier)}`);
+  const files = Array.isArray(metadata?.files) ? metadata.files : [];
+  const videoFile = selectInternetArchiveVideoFile(files);
+  if (!videoFile) {
+    return null;
+  }
+
+  const thumbnailFile = selectInternetArchiveThumbnailFile(files);
+  const title = asSingleLineText(metadata?.metadata?.title ?? doc.title) || identifier;
+  const creator = asSingleLineText(metadata?.metadata?.creator ?? doc.creator) || 'Internet Archive';
+  const description = asSingleLineText(metadata?.metadata?.description ?? doc.description);
+  const publishedAt = parseArchiveDate(metadata?.metadata?.date ?? metadata?.metadata?.publicdate ?? doc.date);
+
+  return {
+    kind: 'video',
+    id: syntheticVideoId('ia', identifier),
+    title: decodeText(title),
+    channelId: 'internet-archive',
+    channelName: decodeText(creator),
+    thumbnailUrl: thumbnailFile ? archiveFileUrl(identifier, thumbnailFile.name) : '',
+    durationSeconds: parseArchiveDuration(videoFile.length),
+    viewCount: parseOptionalNumber(doc.downloads ?? metadata?.metadata?.downloads),
+    publishedAt,
+    description: decodeText(description),
+    canonicalUrl: `https://archive.org/details/${encodeURIComponent(identifier)}`,
+    categoryId: 'freeDirect',
+    liveStatus: 'none',
+    embeddable: false,
+    availability: 'public',
+    playbackUrl: archiveFileUrl(identifier, videoFile.name),
+    playbackContentType: 'progressive'
+  };
+}
+
 function suggestionQuery(video) {
   const words = `${video.title} ${video.channelName}`
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
@@ -281,6 +365,108 @@ function suggestionQuery(video) {
     .filter((word) => word.length > 2)
     .slice(0, 8);
   return words.length ? words.join(' ') : video.channelName || 'popular videos';
+}
+
+async function settleOrEmpty(promise) {
+  try {
+    return await promise;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchInternetArchiveJson(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw safeHttpError(response.status, 'freeCatalogUnavailable', 'The free direct video catalog is temporarily unavailable.', true);
+    }
+    return await response.json();
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw safeHttpError(504, 'timeout', 'The free direct video catalog timed out.', true);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeArchiveSearchQuery(value) {
+  const words = String(value ?? '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word.length > 1)
+    .slice(0, 8);
+  return words.length ? words.join(' ') : 'public domain documentary';
+}
+
+function isValidArchiveIdentifier(value) {
+  return typeof value === 'string' && /^[A-Za-z0-9._-]{1,160}$/.test(value);
+}
+
+function selectInternetArchiveVideoFile(files) {
+  const candidates = files
+    .filter((file) => typeof file?.name === 'string')
+    .filter((file) => /\.(mp4|m4v|mov)$/i.test(file.name))
+    .filter((file) => !/(sample|thumbs?\/|_meta\.|_files\.|_archive\.)/i.test(file.name));
+  return candidates.sort((left, right) => scoreArchiveVideoFile(right) - scoreArchiveVideoFile(left))[0] ?? null;
+}
+
+function scoreArchiveVideoFile(file) {
+  const name = file.name.toLowerCase();
+  const format = String(file.format ?? '').toLowerCase();
+  let score = 0;
+  if (format.includes('h.264')) score += 20;
+  if (format.includes('mpeg4')) score += 12;
+  if (name.endsWith('.ia.mp4')) score += 10;
+  if (name.endsWith('.mp4')) score += 5;
+  if (name.includes('512kb')) score -= 6;
+  const size = Number.parseInt(file.size ?? '0', 10);
+  if (Number.isFinite(size) && size > 0 && size < 700_000_000) score += 3;
+  return score;
+}
+
+function selectInternetArchiveThumbnailFile(files) {
+  return (
+    files.find((file) => file?.name === '__ia_thumb.jpg') ??
+    files.find((file) => typeof file?.name === 'string' && file.name.includes('.thumbs/') && /\.(jpg|jpeg|png|webp)$/i.test(file.name)) ??
+    null
+  );
+}
+
+function archiveFileUrl(identifier, fileName) {
+  const encodedIdentifier = encodeURIComponent(identifier);
+  const encodedFileName = fileName.split('/').map((part) => encodeURIComponent(part)).join('/');
+  return `https://archive.org/download/${encodedIdentifier}/${encodedFileName}`;
+}
+
+function asSingleLineText(value) {
+  const text = Array.isArray(value) ? value.filter(Boolean).join(', ') : value;
+  return String(text ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function parseArchiveDate(value) {
+  const text = asSingleLineText(value);
+  if (!text) return '';
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString();
+}
+
+function parseArchiveDuration(value) {
+  const seconds = Number.parseFloat(String(value ?? ''));
+  return Number.isFinite(seconds) && seconds > 0 ? Math.round(seconds) : 0;
+}
+
+function syntheticVideoId(prefix, value) {
+  const hash = createHash('sha1').update(`${prefix}:${value}`).digest('base64url');
+  return `${prefix}${hash}`.slice(0, 11);
 }
 
 async function fetchVideosByIds(ids) {

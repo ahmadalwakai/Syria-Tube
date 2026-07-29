@@ -12,6 +12,8 @@ The mobile app needs a stable public HTTPS backend. Do not use account-less Clou
 Direct playback sources must use HTTPS and are the only videos that can keep playing after iPhone screen lock.
 For any release that claims lock-screen playback, at least one direct source must be configured before shipping.
 
+The backend also includes a no-key Internet Archive direct-video catalog. It searches Archive metadata and selects HTTPS MP4 files from matching movie items, which keeps lock-screen playback free for that catalog without requiring Mux, Cloudflare Stream, Bunny, S3, or R2. This is separate from YouTube embed playback.
+
 ## Local Checks
 
 ```bash
