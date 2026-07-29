@@ -147,7 +147,7 @@ const playbackKeepAwakeTag = 'SyriaTubePlayback';
 const appVersion = '1.0.0';
 
 const homeSectionLabels: Record<HomeSectionKey, string> = {
-  nativeDirect: 'Lock Screen Ready',
+  nativeDirect: 'Free Lock Screen',
   continueWatching: 'Continue Watching',
   trending: 'Trending',
   music: 'Music',
@@ -341,7 +341,15 @@ function playbackSourceLabel(session: ActivePlaybackSession | null): string {
   if (!session) {
     return 'No active player';
   }
-  return hasNativePlaybackSource(session.video) ? 'Native direct' : 'YouTube embed';
+  return hasNativePlaybackSource(session.video) ? 'Lock-screen direct' : 'YouTube embed';
+}
+
+function videoSourceBadge(video: YouTubeVideo): string {
+  return hasNativePlaybackSource(video) ? 'Lock' : 'YouTube';
+}
+
+function videoSourceActionLabel(video: YouTubeVideo): string {
+  return hasNativePlaybackSource(video) ? 'Open Source' : 'Open in YouTube';
 }
 
 function lastSupportErrorCode(startupState: StartupState, homeFeed: HomeFeedState, playerError: string | null): string {
@@ -1229,7 +1237,7 @@ function HomeScreen({
   onAddToQueue: (video: YouTubeVideo) => void;
 }) {
   const content = feed.content;
-  const visibleSections = content.sections.filter((section) => !library.homeHiddenSectionKeys.includes(section.key));
+  const visibleSections = content.sections.filter((section) => section.key === 'nativeDirect' || !library.homeHiddenSectionKeys.includes(section.key));
   const hasContent = hasHomeContent(content);
   const showInitialSkeletons = (feed.status === 'initializing' || feed.status === 'loading') && !hasContent;
   const showTerminalError = (feed.status === 'error' || feed.status === 'offline') && !hasContent && feed.error;
@@ -1254,7 +1262,7 @@ function HomeScreen({
         style={[styles.searchField, { backgroundColor: palette.surface, borderColor: palette.border }]}
         onPress={onSearch}
       >
-        <Text style={[styles.searchPlaceholder, { color: palette.subtle }]}>Search YouTube</Text>
+        <Text style={[styles.searchPlaceholder, { color: palette.subtle }]}>Search videos</Text>
       </Pressable>
       <ActionButton label="Mirror Screen to TV" icon={MonitorUp} palette={palette} onPress={() => showScreenMirroringGuide()} />
       {showStartupChecking ? <InlineState title="Checking Syria Tube backend readiness" palette={palette} /> : null}
@@ -2205,8 +2213,9 @@ function HomeSectionsPanel({
         <SettingsSwitch
           key={sectionKey}
           label={homeSectionLabels[sectionKey]}
-          value={!library.homeHiddenSectionKeys.includes(sectionKey)}
+          value={sectionKey === 'nativeDirect' || !library.homeHiddenSectionKeys.includes(sectionKey)}
           palette={palette}
+          disabled={sectionKey === 'nativeDirect'}
           onValueChange={(visible) => setSectionVisible(sectionKey, visible)}
         />
       ))}
@@ -3270,7 +3279,7 @@ function VideoCard({
               { text: queued ? 'Move to Queue End' : 'Add to Queue', onPress: () => onAddToQueue(video) },
               { text: 'Watch Later', onPress: () => onAddWatchLater(video) },
               { text: 'Favourite', onPress: () => onAddFavourite(video) },
-              { text: 'Open in YouTube', onPress: () => void Linking.openURL(video.canonicalUrl) },
+              { text: videoSourceActionLabel(video), onPress: () => void Linking.openURL(video.canonicalUrl) },
               { text: 'Share URL', onPress: () => void Share.share({ message: video.canonicalUrl, url: video.canonicalUrl }) },
               { text: 'Cancel', style: 'cancel' }
             ])
@@ -3290,6 +3299,7 @@ function VideoThumbnail({ video, palette, progress }: { video: YouTubeVideo; pal
       {video.thumbnailUrl ? <Image source={{ uri: video.thumbnailUrl }} style={styles.thumbnailImage} resizeMode="cover" /> : null}
       <View style={styles.badgeRow}>
         {video.liveStatus === 'live' ? <Text style={styles.liveBadge}>Live</Text> : <Text style={styles.durationBadge}>{formatDuration(video.durationSeconds)}</Text>}
+        <Text style={hasNativePlaybackSource(video) ? styles.lockBadge : styles.embedBadge}>{videoSourceBadge(video)}</Text>
         {percentage >= 0.9 ? <Text style={styles.watchedBadge}>Watched</Text> : null}
       </View>
       {percentage > 0 && percentage < 0.9 ? (
@@ -3900,6 +3910,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#C91F37',
     borderRadius: 4,
     color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+    overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 4
+  },
+  lockBadge: {
+    backgroundColor: '#0A665E',
+    borderRadius: 4,
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+    overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 4
+  },
+  embedBadge: {
+    backgroundColor: '#D98A24',
+    borderRadius: 4,
+    color: '#101616',
     fontSize: 12,
     fontWeight: '800',
     overflow: 'hidden',
