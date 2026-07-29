@@ -1209,9 +1209,11 @@ test('production EAS profile loads production environment and validates API conf
   const easConfig = JSON.parse(readFileSync(path.join(process.cwd(), 'eas.json'), 'utf8'));
   const packageConfig = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
   const validatorSource = readFileSync(path.join(process.cwd(), 'scripts', 'validate-production-config.mjs'), 'utf8');
+  const patchScript = readFileSync(path.join(process.cwd(), 'scripts', 'patch-expo-video-ios-background.mjs'), 'utf8');
 
   assert.equal(easConfig.build.production.environment, 'production');
-  assert.equal(packageConfig.scripts['eas-build-post-install'], 'node scripts/validate-production-config.mjs');
+  assert.equal(packageConfig.scripts.postinstall, 'node scripts/patch-expo-video-ios-background.mjs');
+  assert.equal(packageConfig.scripts['eas-build-post-install'], 'node scripts/patch-expo-video-ios-background.mjs && node scripts/validate-production-config.mjs');
   assert.ok(validatorSource.includes('EXPO_PUBLIC_SYRIA_TUBE_API_BASE_URL'));
   assert.ok(validatorSource.includes("parsed.protocol !== 'https:'"));
   assert.ok(validatorSource.includes('isDevelopmentOnlyHost(parsed.hostname)'));
@@ -1220,6 +1222,14 @@ test('production EAS profile loads production environment and validates API conf
   assert.ok(validatorSource.includes('NSAllowsArbitraryLoads'));
   assert.ok(validatorSource.includes('supportsBackgroundPlayback'));
   assert.ok(validatorSource.includes('supportsPictureInPicture'));
+  assert.ok(validatorSource.includes('validateNativeExpoVideoPatch()'));
+  assert.ok(validatorSource.includes('func applyBackgroundPlaybackPolicy()'));
+  assert.ok(validatorSource.includes('audiovisualBackgroundPlaybackPolicy = staysActiveInBackground ? .continuesIfPossible : .pauses'));
+  assert.ok(patchScript.includes('node_modules'));
+  assert.ok(patchScript.includes('expo-video'));
+  assert.ok(patchScript.includes('applyBackgroundPlaybackPolicy()'));
+  assert.ok(patchScript.includes('audiovisualBackgroundPlaybackPolicy = staysActiveInBackground ? .continuesIfPossible : .pauses'));
+  assert.ok(patchScript.includes('setAppropriateAudioSessionOrWarn()'));
 });
 
 test('backend production tooling protects secrets and exposes health checks', () => {

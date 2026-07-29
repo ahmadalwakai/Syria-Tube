@@ -4,6 +4,7 @@
   "private": true,
   "main": "index.ts",
   "scripts": {
+    "postinstall": "node scripts/patch-expo-video-ios-background.mjs",
     "start": "expo start",
     "api": "node server/youtube-proxy.mjs",
     "api:validate": "node scripts/validate-backend-env.mjs",
@@ -16,7 +17,7 @@
     "validate:production-config": "node scripts/validate-production-config.mjs --production",
     "testflight:ready": "node scripts/validate-testflight-readiness.mjs",
     "testflight:ready:lock-screen": "node scripts/validate-testflight-readiness.mjs --require-direct-sources",
-    "eas-build-post-install": "node scripts/validate-production-config.mjs",
+    "eas-build-post-install": "node scripts/patch-expo-video-ios-background.mjs && node scripts/validate-production-config.mjs",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

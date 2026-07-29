@@ -38,6 +38,7 @@ if (isTemporaryTunnelHost(parsed.hostname)) {
 }
 
 validateExpoMediaConfig();
+validateNativeExpoVideoPatch();
 
 console.log(`Syria Tube production config ok: API host ${parsed.hostname}; native background playback enabled`);
 
@@ -74,6 +75,29 @@ function validateExpoMediaConfig() {
 
   if (expoVideoOptions?.supportsPictureInPicture !== true) {
     fail('expo-video must enable supportsPictureInPicture for the native player.');
+  }
+}
+
+function validateNativeExpoVideoPatch() {
+  let videoPlayerSource;
+  let videoManagerSource;
+  try {
+    videoPlayerSource = readFileSync(new URL('../node_modules/expo-video/ios/VideoPlayer.swift', import.meta.url), 'utf8');
+    videoManagerSource = readFileSync(new URL('../node_modules/expo-video/ios/VideoManager.swift', import.meta.url), 'utf8');
+  } catch {
+    fail('expo-video iOS native sources must be installed before production validation.');
+  }
+
+  if (!videoPlayerSource.includes('func applyBackgroundPlaybackPolicy()')) {
+    fail('expo-video iOS background playback patch is missing from VideoPlayer.swift.');
+  }
+
+  if (!videoPlayerSource.includes('ref.audiovisualBackgroundPlaybackPolicy = staysActiveInBackground ? .continuesIfPossible : .pauses')) {
+    fail('expo-video iOS AVPlayer policy must be set eagerly for lock-screen playback.');
+  }
+
+  if (!videoManagerSource.includes('player.applyBackgroundPlaybackPolicy()')) {
+    fail('expo-video iOS background manager must reuse the eager background playback policy.');
   }
 }
 
