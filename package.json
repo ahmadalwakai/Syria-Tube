@@ -6,7 +6,14 @@
   "scripts": {
     "start": "expo start",
     "api": "node server/youtube-proxy.mjs",
+    "api:validate": "node scripts/validate-backend-env.mjs",
+    "api:validate:release": "node scripts/validate-backend-env.mjs --require-direct-sources",
+    "api:health": "node scripts/check-backend-health.mjs",
     "icons": "powershell -ExecutionPolicy Bypass -File scripts/generate-icons.ps1",
+    "validate:production-config": "node scripts/validate-production-config.mjs --production",
+    "testflight:ready": "node scripts/validate-testflight-readiness.mjs",
+    "testflight:ready:lock-screen": "node scripts/validate-testflight-readiness.mjs --require-direct-sources",
+    "eas-build-post-install": "node scripts/validate-production-config.mjs",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -16,9 +23,16 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.8",
+    "expo-haptics": "~57.0.1",
+    "expo-keep-awake": "~57.0.1",
     "expo-status-bar": "~57.0.1",
+    "expo-video": "~57.0.2",
+    "lucide-react-native": "^1.27.0",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.0",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "^0.21.2",
     "react-native-webview": "13.16.1"
   },
   "devDependencies": {

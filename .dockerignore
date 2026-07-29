@@ -1,0 +1,14 @@
+.expo
+.git
+.gitignore
+node_modules
+dist
+web-build
+ios
+android
+.env
+.env.local
+.env.*.local
+*.log
+*.ipa
+build-*-ipa

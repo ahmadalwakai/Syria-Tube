@@ -15,13 +15,26 @@ Syria Tube is now an Expo React Native TypeScript app prepared for iOS TestFligh
 - App Store Connect app ID: `6794990700`
 - iOS build target: EAS cloud build for iOS store/TestFlight distribution
 - Secrets: none committed
-- YouTube playback: official embedded IFrame player only, inside `react-native-webview`
+- Playback: native `expo-video` for direct media URLs supplied by the backend, with official YouTube IFrame/WebView fallback for YouTube embed records
 
 ## YouTube Boundary
 
-The app keeps YouTube playback inside the official embedded player and does not include raw stream URLs, media extraction, download logic, MP3 conversion, proxying, offline playback, ad removal, hidden background playback, PiP, AirPlay, Chromecast, or manual quality controls.
+The app keeps YouTube embed playback inside the official embedded player and does not include YouTube raw stream URL extraction, download logic, MP3 conversion, ad removal, or hidden WebView background playback. Native background playback, Now Playing controls, AirPlay, and PiP are enabled only for direct media URLs that the configured backend explicitly provides as playable app sources.
 
-Search uses local sample metadata unless `EXPO_PUBLIC_SYRIA_TUBE_API_BASE_URL` points to a backend. A local backend proxy is available at `server/youtube-proxy.mjs`; it reads `YOUTUBE_DATA_API_KEY` from `.env.local` or the process environment and keeps the key server-side. Do not place a YouTube API key in Expo public config or the mobile bundle.
+Search requires `EXPO_PUBLIC_SYRIA_TUBE_API_BASE_URL` to point to a backend. A local backend proxy is available at `server/youtube-proxy.mjs`; it reads `YOUTUBE_DATA_API_KEY` from `.env.local` or the process environment and keeps the key server-side. Do not place a YouTube API key in Expo public config or the mobile bundle.
+
+Native background playback requires the backend to attach a direct playable media source to a video record. The local proxy supports this through `SYRIA_TUBE_DIRECT_SOURCES_JSON` or `SYRIA_TUBE_DIRECT_SOURCES_FILE`, keyed by YouTube video ID, with values shaped like:
+
+```json
+{
+  "AbCdEfGhIj1": {
+    "playbackUrl": "https://media.example.com/licensed/video.m3u8",
+    "playbackContentType": "hls"
+  }
+}
+```
+
+When no direct source is configured for a YouTube video ID, the app uses the YouTube embed fallback and screen-lock playback is unavailable for that video.
 
 Official references used:
 
@@ -31,6 +44,7 @@ Official references used:
 - YouTube Developer Policies: https://developers.google.com/youtube/terms/developer-policies
 - Expo iOS submit docs: https://docs.expo.dev/submit/ios/
 - Expo app config docs: https://docs.expo.dev/versions/latest/config/app/
+- Expo video docs: https://docs.expo.dev/versions/latest/sdk/video/
 - Expo `eas.json` docs: https://docs.expo.dev/eas/json/
 
 ## Local Development
@@ -65,8 +79,17 @@ For TestFlight, deploy this proxy behind a public HTTPS URL and build with `EXPO
 Run checks:
 
 ```bash
+npm run api:validate
 npm run typecheck
 npm test
+```
+
+Use the stricter backend gate before TestFlight/App Store work:
+
+```bash
+npm run testflight:ready
+npm run testflight:ready:lock-screen
+npm run api:health -- https://your-backend.example --deep --require-direct-sources
 ```
 
 ## TestFlight
@@ -123,4 +146,4 @@ C:\nvm4w\nodejs\eas.cmd build --platform ios --profile production --auto-submit 
 
 ## App Review Note Draft
 
-Syria Tube is a React Native iOS app that uses the official YouTube embedded IFrame player for playback. The app adds native value through organised collections, continue watching, local history controls, private sessions, focus sessions, and reduced-distraction discovery surfaces. It does not download, cache, convert, proxy, expose, or extract YouTube audiovisual streams, and it does not claim background playback, PiP, AirPlay, Chromecast, ad removal, or offline playback. Local data is limited to user-created organisation state and watch progress.
+Syria Tube is a React Native iOS app that uses the official YouTube embedded IFrame player for YouTube embed playback and a native iOS video player only for direct playable media URLs supplied by the configured backend. The app adds native value through organised collections, continue watching, local history controls, private sessions, focus sessions, background playback for direct-source media, PiP for direct-source media, and reduced-distraction discovery surfaces. It does not download, cache, convert, expose, or extract YouTube audiovisual streams. Local data is limited to user-created organisation state and watch progress.

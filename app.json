@@ -15,7 +15,14 @@
       "icon": "./assets/icon.png",
       "supportsTablet": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "youtube",
+          "vnd.youtube"
+        ],
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -33,11 +40,20 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "youtubePlayback": "iframe-only",
+      "youtubePlayback": "native-direct-source-with-youtube-iframe-fallback",
       "eas": {
         "projectId": "4582d049-a59e-4185-ba25-1ec1dcdc06a1"
       }
     },
-    "owner": "ahmadawadalwakai"
+    "owner": "ahmadawadalwakai",
+    "plugins": [
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ]
+    ]
   }
 }
