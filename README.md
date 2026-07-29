@@ -87,8 +87,10 @@ npm test
 Use the stricter backend gate before TestFlight/App Store work:
 
 ```bash
+npm run direct-sources:add -- --video=https://www.youtube.com/watch?v=AbCdEfGhIj1 --playback=https://media.example.com/licensed/video.m3u8 --type=hls
 npm run direct-sources:validate
 npm run direct-sources:sync
+npx vercel --prod --scope ahmadalwakais-projects
 npm run testflight:ready
 npm run testflight:ready:lock-screen
 npm run api:health -- https://your-backend.example --deep --require-direct-sources

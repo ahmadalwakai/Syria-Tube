@@ -10,6 +10,7 @@
     "api:validate:release": "node scripts/validate-backend-env.mjs --require-direct-sources",
     "api:health": "node scripts/check-backend-health.mjs",
     "direct-sources:validate": "node scripts/sync-direct-sources-to-vercel.mjs --check",
+    "direct-sources:add": "node scripts/add-direct-source.mjs",
     "direct-sources:sync": "node scripts/sync-direct-sources-to-vercel.mjs",
     "icons": "powershell -ExecutionPolicy Bypass -File scripts/generate-icons.ps1",
     "validate:production-config": "node scripts/validate-production-config.mjs --production",
