@@ -46,6 +46,7 @@ For production, configure the secret in the hosting provider instead of storing 
 - Attach a public HTTPS domain.
 - Do not use a `trycloudflare.com` quick tunnel as the production backend URL.
 - Configure `SYRIA_TUBE_DIRECT_SOURCES_JSON` or `SYRIA_TUBE_DIRECT_SOURCES_FILE` with licensed HTTPS native playback sources.
+- Keep `config/direct-sources.production.json` current, then run `npm run direct-sources:validate` and `npm run direct-sources:sync` to update Vercel's `SYRIA_TUBE_DIRECT_SOURCES_JSON`.
 - Confirm:
   - `GET /health/live` returns `200`.
   - `GET /health/ready` returns `200` and `ready: true`.
