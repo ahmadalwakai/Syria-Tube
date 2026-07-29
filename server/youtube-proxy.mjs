@@ -144,7 +144,7 @@ async function handleSearch(requestUrl, response) {
     searchParams.set('eventType', 'live');
   }
 
-  const freeDirectPromise = searchType === 'video' && !pageToken ? fetchFreeDirectVideos(query, 8) : Promise.resolve([]);
+  const freeDirectPromise = searchType === 'video' && !pageToken ? fetchFreeDirectVideos(query, 4) : Promise.resolve([]);
   const search = await fetchYouTube(`https://www.googleapis.com/youtube/v3/search?${searchParams}`);
   if (searchType !== 'video') {
     sendJson(response, 200, {
@@ -200,7 +200,7 @@ async function handleHome(requestUrl, response) {
 
 async function fetchNativeDirectVideos() {
   const configuredPromise = directPlaybackSources.size ? fetchVideosByIds(directPlaybackVideoIds()) : Promise.resolve([]);
-  const freeDirectPromise = fetchFreeDirectVideos('free animation', 12, { archiveQuery: 'collection:animationandcartoons', sortByDownloads: true });
+  const freeDirectPromise = fetchFreeDirectVideos('free animation', 6, { archiveQuery: 'collection:animationandcartoons', sortByDownloads: true });
   const [configured, freeDirect] = await Promise.all([settleOrEmpty(configuredPromise), settleOrEmpty(freeDirectPromise)]);
   return uniqueById([...configured, ...freeDirect]).slice(0, 12);
 }
@@ -296,7 +296,7 @@ async function fetchFreeDirectVideos(query, maxResults = 12, options = {}) {
 
   const params = new URLSearchParams({
     q: `${normalizedQuery} AND mediatype:movies AND (format:"h.264 IA" OR format:"MPEG4")`,
-    rows: String(Math.min(Math.max(maxResults * 4, 12), 40)),
+    rows: String(Math.min(Math.max(maxResults * 2, 8), 16)),
     page: '1',
     output: 'json'
   });
@@ -308,7 +308,7 @@ async function fetchFreeDirectVideos(query, maxResults = 12, options = {}) {
   }
 
   const search = await fetchInternetArchiveJson(`https://archive.org/advancedsearch.php?${params}`);
-  const docs = Array.isArray(search?.response?.docs) ? search.response.docs.slice(0, Math.min(maxResults * 3, 24)) : [];
+  const docs = Array.isArray(search?.response?.docs) ? search.response.docs.slice(0, Math.min(maxResults * 2, 12)) : [];
   const mapped = await Promise.allSettled(docs.map((doc) => mapInternetArchiveVideo(doc)));
   const candidates = mapped
     .filter((result) => result.status === 'fulfilled')
